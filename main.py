@@ -20,7 +20,6 @@ data = pd.read_csv('data/hindi_hatespeech.tsv', sep='\t', encoding="utf8")
 #data = pd.read_csv('data/bengali_hatespeech.csv')
 # data = data.rename(columns={"sentence": "text"})
 # Split off a small part of the corpus as a development set (~100 data points)
-data = data.head(2500)
 
 # Data preparation
 p.set_options(p.OPT.URL, p.OPT.MENTION, p.OPT.SMILEY)
