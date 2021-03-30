@@ -89,7 +89,7 @@ vocab_size = len(V)
 learning_rate = 0.001
 epochs = 100
 batch_size = 200
-stop_criterion = 5000
+stop_criterion = 1000
 
 instances = []
 for _, i in data.iterrows():
