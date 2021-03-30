@@ -3,22 +3,29 @@ import numpy as np
 import pandas as pd
 import regex as re
 import preprocessor as p
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 
+if torch.cuda.is_available():  
+  dev = "cuda:0" 
+else:  
+  dev = "cpu"
 
-data = pd.read_csv('data/hindi_hatespeech.tsv', sep='\t')
+device = torch.device(dev)
+
+data = pd.read_csv('data/hindi_hatespeech.tsv', sep='\t', encoding="utf8")
 # data = pd.read_csv('data/bengali_hatespeech.csv')
 # data = data.rename(columns={"sentence": "text"})
 # Split off a small part of the corpus as a development set (~100 data points)
-data = data.head(2500)
+# data = data.head(100)
 
 # Data preparation
 p.set_options(p.OPT.URL, p.OPT.MENTION, p.OPT.SMILEY)
-f = open('data/stopwords-hi.txt', 'r', encoding='utf8')
+f = open('data/stopwords-hi.txt', 'r')
 # f = open('data/stopwords-bn.txt', 'r')
 rules = f.read().splitlines()
 f.close()
@@ -61,10 +68,11 @@ def get_target_context(sentence):
     sentence = [i for i in sentence if sampling_prob(i)>np.random.sample()]    # Drop frequent words
 
     training_pairs = []
+    r = random.randint(1, window_size)
     for i in sentence:
         target_idx = sentence.index(i)
-        smallest_idx = max(target_idx-window_size, 0)
-        largest_idx = min(target_idx+window_size, len(sentence)-1)
+        smallest_idx = max(target_idx-r, 0)
+        largest_idx = min(target_idx+r, len(sentence)-1)
         for j in range(smallest_idx, largest_idx+1):
             if j == target_idx:
                 continue
@@ -82,7 +90,7 @@ vocab_size = len(V)
 learning_rate = 0.001
 epochs = 100
 batch_size = 200
-stop_criterion = 5000
+stop_criterion = 500
 
 
 instances = []
@@ -106,8 +114,8 @@ class Word2Vec(nn.Module):
     super(Word2Vec, self).__init__()
     self.input = nn.Linear(vocab_size, embedding_size, bias=False)
     self.output = nn.Linear(embedding_size, vocab_size, bias=False)
-    self.input.weight.data.uniform_(0, 1)
-    self.output.weight.data.uniform_(0, 1)
+    self.input.weight.data.uniform_(-1, 1)
+    self.output.weight.data.uniform_(-1, 1)
 
   def forward(self, one_hot):
     embed = self.input(one_hot)
@@ -116,6 +124,7 @@ class Word2Vec(nn.Module):
 
 
 model = Word2Vec()
+model.to(device)
 weights = model.state_dict()
 
 # Define optimizer and loss
@@ -123,9 +132,11 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 criterion = nn.CrossEntropyLoss()
 
 # Define train procedure
-def train(dataloader, model, optimizer, criterion):
+def train(dataloader, model, optimizer):
     total_loss = 0
     for batch, (X, y) in enumerate(dataloader):
+        X = X.to(device)
+        y = y.to(device)
         pred = model(X)
         loss = criterion(pred, torch.max(y, 1)[1])
 
@@ -141,12 +152,13 @@ def train(dataloader, model, optimizer, criterion):
 
 # load initial weights
 # model = Word2Vec()
+# optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 print("Training started")
 model.train()
 for i in range(epochs):
     print('\nEPOCH {}/{} '.format(i + 1, epochs))
-    loss = train(dataloader, model, optimizer, criterion)
+    loss = train(dataloader, model, optimizer)
     if loss < stop_criterion:
         break
 print("Training finished")
@@ -154,4 +166,4 @@ print("Training finished")
 torch.save(model.input.state_dict(), 'hindi_embeddings.pth')
 with open('hindi_vocab.txt', 'w') as f:
     for item in V:
-        f.write("%s\n" % item)
+        f.write("%s\n" % item.encode("utf8"))
