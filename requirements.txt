@@ -1,2 +1,4 @@
-pytorch
+torch
 tweet-preprocessor
+pandas
+regex
