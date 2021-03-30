@@ -20,7 +20,7 @@ device = torch.device(dev)
 data = pd.read_csv('data/bengali_hatespeech.csv', encoding="utf8")
 data = data.rename(columns={"sentence": "text"})
 # Split off a small part of the corpus as a development set (~100 data points)
-data = data.head(1000)
+data = data.head(3000)
 # Data preparation
 p.set_options(p.OPT.URL, p.OPT.MENTION, p.OPT.SMILEY)
 # f = open('data/stopwords-hi.txt', 'r', encoding="utf8")
@@ -167,12 +167,13 @@ def train(dataloader, model, optimizer, criterion):
 # load initial weights
 # model.input.weight = nn.Parameter(embeddings)
 # model.output.weight = nn.Parameter(context_mappings)
-
+loss_results = []
 print("Training started")
 model.train()
 for i in range(epochs):
     print('\nEPOCH {}/{} '.format(i + 1, epochs))
     loss = train(dataloader, model, optimizer, criterion)
+    loss_results.append(loss)
     if loss < stop_criterion:
         break
 print("Training finished")
@@ -181,6 +182,8 @@ torch.save(model.input.state_dict(), 'bengali_embeddings.pth')
 with open('bengali_vocab.txt', 'w') as f:
     for item in V:
         f.write("%s\n" % item)
+
+np.save('bengali_loss.npy', np.asarray(loss_results))
 # torch.save(model.input.state_dict(), 'hindi_embeddings.pth')
 # with open('hindi_vocab.txt', 'w') as f:
 #     for item in V:
