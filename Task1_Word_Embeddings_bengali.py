@@ -21,7 +21,7 @@ device = torch.device(dev)
 data = pd.read_csv('data/bengali_hatespeech.csv', encoding="utf8")
 data = data.rename(columns={"sentence": "text"})
 # Split off a small part of the corpus as a development set (~100 data points)
-data = data.head(5000)
+data = pd.concat([data[data.hate==1].sample(2500), data[data.hate==0].sample(2500)])
 
 # Data preparation
 p.set_options(p.OPT.URL, p.OPT.MENTION, p.OPT.SMILEY)
@@ -164,6 +164,6 @@ for i in range(epochs):
 print("Training finished")
 
 torch.save(model.input.state_dict(), 'bengali_embeddings.pth')
-with open('bengali_vocab.txt', 'w') as f:
+with open('bengali_vocab.txt', 'w', encoding='utf8') as f:
     for item in V:
-        f.write("%s\n" % item.encode("utf8"))
+        f.write("%s\n" % item)
