@@ -153,12 +153,13 @@ def train(dataloader, model, optimizer):
 # load initial weights
 # model = Word2Vec()
 # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
+training_loss = []
 print("Training started")
 model.train()
 for i in range(epochs):
     print('\nEPOCH {}/{} '.format(i + 1, epochs))
     loss = train(dataloader, model, optimizer)
+    training_loss.append(loss)
     if loss < stop_criterion:
         break
 print("Training finished")
@@ -167,3 +168,4 @@ torch.save(model.input.state_dict(), 'bengali_embeddings.pth')
 with open('bengali_vocab.txt', 'w', encoding='utf8') as f:
     for item in V:
         f.write("%s\n" % item)
+np.save('bengali_loss.npy', np.asarray(training_loss))
